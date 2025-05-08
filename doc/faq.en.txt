@@ -1,0 +1,152 @@
+> -----Original Message-----
+> From: *************************
+> Sent: Friday, May 14, 7:36 PM
+> To: Sebastien Benoit
+> Subject: LEMIPC question
+>
+> Hi,
+> I have a few small questions regarding LEMIPC:
+>
+> - What are the movement rules for the players?
+
+Move one square at a time (one square per lock of the map), in the directions up, down, right and left (no diagonal).
+
+> - What size is the board?
+
+The size is up to you, set it in the defines.
+
+> - How many players are there?
+
+No specific limit, the same applies for the number of teams. We should test with a few players (3 or 4).
+
+--
+Sebastien BENOIT
+
+
+> -----Original Message-----
+> From: @@@@@@@@@@@@@@@@@@@@
+> Sent: Friday, May 21, 11:57 AM
+> To: Beeone
+> Subject: LEMIPC: Need clarifications...
+>
+> Hello,
+>
+> Does the subject really give us as much freedom as it seems? So I have a few questions ;)
+>
+> 1. When a player is surrounded, how do they know they must die? Is it the last player who helped surround them who checks if the other is surrounded and then sends a message saying they are dead? I saw that:
+>
+>   "When a player realizes they are surrounded by at least 2 players from the same opposing team, they must leave the board."
+
+The surrounded player must verify this before trying to move.
+
+> ...but in that case, what are the msgqs for? I don’t see their usefulness in the program.
+
+To communicate to others the position of a player to attack.
+
+> 2. Are the movements random or intelligent?
+
+Intelligent (obviously you need to chase players from other teams while trying to agree on a target).
+
+> 3. Can we create an additional thread dedicated to display in order to get cleaner code?
+
+(No threads, but processes)
+
+Yes, you can create a specific client for the display, but it is not this client that should create the map. It must not modify anything in the game.
+
+> 4. Potentially dumb question: How many players can play at the same time? In other words, should the semaphore value for accessing the resource initially be 1 or..?
+
+Only one player can play at a time, otherwise we risk having overlapping movements on the map.
+
+--
+Sebastien BENOIT
+
+
+> -----Original Message-----
+> From: %%%%%%%%%%%%%%%%%%%%%%%
+> Sent: Monday, May 24, 3:43 PM
+> To: Seb, that's right
+> Subject: LEMIPC: Two more questions!
+>
+> Hi,
+>
+> I have two more questions about LEMIPC.
+>
+> 1. I opted for the use of a process dedicated to the graphical layer. This process can access all the players’ structures. But should we use the semaphore to access the players’ data before accessing the shared information? Or can I directly use the information from my structures? (This is only for the graphical layer, I know players can't).
+
+If it's just read-only data, no semaphore is needed. However, as soon as it's data that at least 2 processes can access simultaneously, and if at least one of them can modify it, all accesses (including reading) must go through a semaphore.
+
+> 2. What’s the goal of the pseudo-artificial intelligence?
+
+It's more of a bonus, the AI doesn't use IPCs, but synchronizing players from a team to attack the same player does.
+
+> For now, players are all rushing at each other, and each team tries to surround one from the other team. But graphically, it's messy and strange... Is that the solution though?
+
+Yes. But it can be refined, you don't need more than 2, but they should be the 2 closest to increase their chances of success.
+
+You can also consider passing a parameter for the "AI level" to use, so that teams of unequal intelligence can fight.
+
+--
+Sebastien BENOIT
+
+> -----Original Message-----
+> From: +++++++++++++++++++++++
+> Sent: Tuesday, May 25, 3:15 PM
+> To: Sebastien Benoit
+> Subject: LEMIPC: Questions
+>
+> Hello,
+>
+> I was wondering how we should make LEMIPC,
+>
+> Is there a single executable that forks as many times as necessary to create my teams and players?
+>
+> Example: 2 teams of 3 players, my program will fork to create the 6 players who will then fight and start the game.
+
+No
+
+> Or
+>
+> There’s one executable, and we’ll launch as many executables as there are teams that will play together, and the program will fork just enough to create the 3 players for each team.
+
+No, again.
+
+We launch one executable for each player, specifying their team as a parameter.
+
+There’s never a need to use fork.
+
+--
+Sebastien BENOIT
+
+-----------------------------:
+> Hello,
+>
+> I have a few questions regarding the flow of the game.
+>
+> Does the game start as soon as the first player creates the game's environment (initializing IPCs, creating the game board, etc.)? Or does the one who creates the game define the number of players and teams that will participate, and the game starts when everyone has arrived?
+
+It doesn't matter.
+
+> In the first case, does this mean a player can join the game whenever they want, even in the middle of the game?
+
+Yes, but the focus is on IPCs, and we’ll just start the game in good conditions.
+
+> In that case, how do you handle the end of the game? Indeed, a player only dies when 2 players from an opposing team surround them. If team 1 exterminates team 2, at least 2 players will remain on the board. How do you stop the game?
+
+The game ends when the opposing team is completely eliminated.
+
+Subject: "For a team to win the game, it must be the only one left on the board."
+
+> Do players take turns (a concept of cycles), or can they play at any time (as long as the map isn’t locked)?
+
+That’s up to the threads and their mysteries ;)
+
+> Concretely, can Player A play twice while Player B hasn’t yet played?
+
+Yes, that can clearly happen.
+
+> Can we define a maximum number of players via a #define and use an array, or should we manage the players via a structure like a linked list?
+
+Neither, the number of players is not limited, you can just check the map to see which team occupies which square.
+
+--
+Sebastien BENOIT
