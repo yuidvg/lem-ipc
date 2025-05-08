@@ -1,0 +1,172 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+### 🎯 Guidelines for Writing *Functional-Style* C Code
+*(Each rule is immediately followed by a complete, compilable example.)*
+
+---
+
+#### 1. Favor a *functional* mind-set
+**Rule 1** — Write *pure* functions whose result depends **only** on their inputs.
+```c
+// Pure: computes without reading globals or mutating state
+int square(const int x)
+{
+    return x * x;
+}
+```
+
+---
+
+#### 2. Mark **every** variable `const`
+```c
+int sum_three(const int a, const int b, const int c)
+{
+    const int total = a + b + c;
+    return total;
+}
+```
+
+---
+
+#### 3. No mutation — one name ↔ one value
+```c
+const int initial_counter = 0;
+const int next_counter    = initial_counter + 1;
+```
+
+---
+
+#### 4. All dependencies come through arguments
+```c
+typedef struct
+{
+    const size_t length;
+    const int   *data;
+} Const_int_array;
+
+double average(const Const_int_array numbers)
+{
+    const int sum = sum_three(numbers.data[0],
+                              numbers.data[1],
+                              numbers.data[2]);
+    return (double)sum / (double)numbers.length;
+}
+```
+
+---
+
+#### 5. No side-effects (except wrapped syscalls)
+```c
+typedef struct
+{
+    const bool succeeded;
+    const int  result;
+} Result_int;
+```
+
+---
+
+#### 6. Always wrap syscalls
+```c
+typedef struct { const bool succeeded; const int result; } Result_fd;
+
+Result_fd open_file_read_only(const char *const path)
+{
+    const int fd = open(path, O_RDONLY);
+    return (Result_fd){
+        .succeeded = (fd != -1),
+        .result    = (fd != -1) ? fd : -errno
+    };
+}
+```
+
+---
+
+#### 7. Canonical function skeleton
+```c
+int some_function(const size_t a, const Some_type b)
+{
+    const int    value_a = other_function(a);
+    const size_t value_b = other_function(b);
+
+    return (value_a > THRESHOLD) ? value_b : EDGE_CASE;
+}
+```
+
+---
+
+#### 8. Consistent naming style
+Use snake_case.
+
+---
+
+#### 9. **Avoid early returns — use a single, explicit control-flow block**
+**Rule 9** — Instead of returning at multiple exit points, structure logic with a single `if / else if / else` ladder that ends in one `return`.
+
+```c
+int classify_score(const int score)
+{
+    int category = 0;                         // one mutable local allowed
+                                              // solely for the final return
+    if (score >= 90)
+    {
+        /* normal (excellent) case */
+        category = 1;
+    }
+    else if (score >= 75)
+    {
+        /* other normal case */
+        category = 2;
+    }
+    else
+    {
+        /* abnormal (error or low-score) case */
+        category = -1;
+    }
+
+    return category;                          // single exit point
+}
+```
+*Notes*
+* Only **one** `return` (the very last statement).
+* The `else if … else` ladder makes every path explicit and keeps control-flow linear, which is easier to reason about in a functional style.
+* The one mutable local (`category`) is an *exception* to Rule 3, justified because it represents the function's eventual return value without causing observable side-effects.
+
+---
+
+## 10 · Predicate-Function Naming
+
+Boolean-returning functions should read like **questions**—start them with
+`is_`, `has_`, `can_`, `will_`, etc.—rather than a vague verb such as `check_`.
+
+```c
+// ✅  Good: name reads like a true/false question
+bool is_size_overflowed(const size_t size)
+{
+    return size > MAX_ALLOWED_SIZE;
+}
+
+// ❌  Bad: generic “check” gives no hint that the result is Boolean
+// bool check_size_overflow(const size_t size) { … }
+```
+
+> **Why?**
+> Descriptive predicates make call sites self-documenting:
+> `if (is_size_overflowed(n))` is clearer than `if (check_size_overflow(n))`.
+
+---
+
+### 📌 Checklist (quick reference)
+
+1. **Pure** functions, deterministic output.
+2. `const` **everywhere** (rare, scoped exceptions allowed).
+3. **Never** re-assign an existing identifier.
+4. Pass **all** data via parameters.
+5. Wrap **all** side-effects in `Result…` structs.
+6. Follow the **function skeleton** format.
+7. snake_case
+8. **Single exit point**: express flow with `if / else if / else`, no early returns.
+9. Use **predicate names** (`is_…`, `has_…`, `can_…`, …) for all `bool` functions.

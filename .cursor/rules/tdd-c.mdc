@@ -1,0 +1,162 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+### Canonical Test-Driven Development (TDD) in a Nutshell
+*(after Kent Beck's “Canon TDD”)*
+
+1. **Make a Test List** - Brain-storm every behavioural variant you need for the new feature (normal, boundary, error paths, regressions). Suspend thoughts about *how* you'll implement; focus only on *observable* behaviour.  [oai_citation_attribution:0‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd)
+
+2. **Red - Pick exactly one item and turn it into a real, failing, automated test** (full set-up, invocation, and assertions). Keep the rest of the list as plain text so you stay free to change your mind.  [oai_citation_attribution:1‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd)
+
+3. **Green - Change production code just enough to make *all* tests pass.** While you're in the green phase, resist refactoring temptations; separate “make it work” from “make it right.”  [oai_citation_attribution:2‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd)
+
+4. **Refactor (optional, but highly recommended).** With the safety net green, improve internal design—eliminate duplication, clarify intent, rename, simplify. Keep behaviour identical.  [oai_citation_attribution:3‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd)
+
+5. **Loop.** Cross the finished test off the list, choose the next one, and repeat until the list is empty.  [oai_citation_attribution:4‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd)
+
+> **Outcome:** Everything that used to work still works, the new behaviour works, the code is ready for the *next* change, and you have objective confidence in all three.  [oai_citation_attribution:5‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd)
+
+---
+
+### Common Mis-steps to Avoid
+
+| Misunderstanding | Why it hurts |
+|------------------|-------------|
+| Writing *all* tests up front | Early tests lock you into an implementation that the *later* tests might contradict; you end up rewriting both code *and* tests. |
+| Removing assertions or pasting actual values | Destroys the double-check that makes tests valuable. |
+| Mixing refactor with green | You blur intent; when it fails you're not sure whether the *behaviour* or the *design* caused the break. |
+| Abstracting too early | Premature generalisation hides duplication that could have guided a simpler design later. |
+
+(Each of these pitfalls is called out explicitly in Beck's article.  [oai_citation_attribution:6‡Jina AI](mdc:https:/r.jina.ai/http%3A/tidyfirst.substack.com/p/canon-tdd))
+
+---
+
+## Worked Example in Functional-Style C
+
+Below we'll drive out **`average()`** for an immutable array of integers, using the nine functional-style rules you supplied.
+We'll use the tiny **µ-unit** style macro `ASSERT_EQ` for clarity; any C test runner works.
+
+### 0 - Test List
+
+```
+- returns 0.0 when the array is empty                 (edge)
+- returns the single value when length == 1           (degenerate)
+- returns arithmetic mean of three values             (happy path)
+- handles overflow without UB (future work)
+```
+
+---
+
+### 1 - RED
+Pick the simplest: *empty array → 0.0*.
+
+```c
+// test_average.c
+#include "average.h"
+#include <assert.h>
+
+int main(void)
+{
+    const ConstIntArray empty = { .length = 0, .data = NULL };
+    ASSERT_EQ(0.0, average(empty));
+}
+```
+
+*Compile → link → run → test fails (undefined reference).* Good—red bar.
+
+---
+
+### 2 - GREEN
+Add the minimum code to pass **only** this test.
+
+```c
+// average.c
+#include "average.h"
+
+double average(const ConstIntArray numbers)
+{
+    return 0.0;
+}
+```
+
+- **Rule 1:** pure function; no globals
+- **Rule 2:** parameters marked `const` by typedef
+- **Rules 3-5:** no mutation or side-effects
+
+Run the test again → green bar.
+
+---
+
+### 3 - REFACTOR (tiny)
+Nothing to tidy yet, so we skip.
+
+---
+
+### 4 - LOOP back to the list
+Next test: *length == 1*.
+
+#### RED
+
+```c
+const int one = 42;
+const ConstIntArray singleton = { .length = 1, .data = &one };
+ASSERT_EQ(42.0, average(singleton));
+```
+
+Fails (returns 0.0).
+
+#### GREEN - minimal extension
+
+```c
+double average(const ConstIntArray numbers)
+{
+    if (numbers.length == 0) { return 0.0; }
+    return (double)numbers.data[0];
+}
+```
+
+All tests pass.
+
+#### REFACTOR
+
+We foresee a third test that needs the real formula, so we *now* generalise while staying green afterwards.
+
+```c
+double average(const ConstIntArray numbers)
+{
+    if (numbers.length == 0) { return 0.0; }
+
+    const int   length = (int)numbers.length;
+    const int  *data   = numbers.data;
+
+    int sum = 0;                    // Rule 9: one mutable local (return)
+    for (int i = 0; i < length; ++i)
+    {
+        sum += data[i];
+    }
+
+    return (double)sum / (double)length;
+}
+```
+
+No mutation outside the function, variables labeled appropriately.
+
+Run all tests → still green.
+
+---
+
+### 5 - Continue Until Done
+Add the *happy-path* test for three numbers; it already passes (great choice of order!) so we're finished with today's list. Future iterations can add overflow-safe summation, etc.
+
+---
+
+## Putting It Together
+
+1. **Start with a behavioural shopping list.**
+2. **Work in micro-cycles:** red → green → (optional) refactor.
+3. **Lean on functional C discipline** to keep each green step tiny and safe.
+4. **Stop when the list is empty**—and celebrate; you have production code, executable specifications, and a clean design ready for tomorrow.
+
+Practised this way, TDD is not “writing tests first.” It's a *feedback engine* that lets you change behaviour confidently while the code base steadily improves.

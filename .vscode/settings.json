@@ -1,0 +1,17 @@
+{
+    "git.ignoreLimitWarning": true,
+    "files.associations": {
+        "*.h": "c",
+        "array": "c",
+        "deque": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "iterator": "c",
+        "string_view": "c",
+        "type_traits": "c",
+        "cstddef": "c",
+        "memory_resource": "c",
+        "random": "c"
+    }
+}
