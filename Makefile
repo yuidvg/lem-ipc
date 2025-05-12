@@ -23,13 +23,25 @@ DEBUG_OBJ_DIR = $(OBJ_DIR)/debug
 DEBUG_OBJ = $(patsubst $(DEBUG_DIR)/%.c,$(DEBUG_OBJ_DIR)/%.o,$(DEBUG_SRC))
 
 # Tests
-TEST_BIN = $(BIN_DIR)/test.out
-
-TEST_OBJ_DIR = $(OBJ_DIR)/test
-TEST_OBJ = $(patsubst $(TEST_DIR)/%.c,$(TEST_OBJ_DIR)/%.o,$(TEST_SRC))
-
 TEST_DIR = test
-TEST_SRC = $(TEST_DIR)/test.c $(TEST_DIR)/munit.c
+
+# Unit Tests
+UNIT_TEST_BIN = $(BIN_DIR)/unit_test.out
+
+UNIT_TEST_OBJ_DIR = $(OBJ_DIR)/unit_test
+UNIT_TEST_OBJ = $(patsubst $(UNIT_TEST_DIR)/%.c,$(UNIT_TEST_OBJ_DIR)/%.o,$(UNIT_TEST_SRC))
+
+UNIT_TEST_DIR = $(TEST_DIR)/unit
+UNIT_TEST_SRC = $(UNIT_TEST_DIR)/test.c $(UNIT_TEST_DIR)/munit.c
+
+# E2E Tests
+E2E_TEST_BIN = $(BIN_DIR)/e2e_test.out
+
+E2E_TEST_OBJ_DIR = $(OBJ_DIR)/e2e_test
+E2E_TEST_OBJ = $(patsubst $(E2E_TEST_DIR)/%.c,$(E2E_TEST_OBJ_DIR)/%.o,$(E2E_TEST_SRC))
+
+E2E_TEST_DIR = $(TEST_DIR)/e2e
+E2E_TEST_SRC = $(E2E_TEST_DIR)/test.c $(E2E_TEST_DIR)/munit.c
 
 # App
 APP_BIN = $(BIN_DIR)/ #insert here
@@ -57,13 +69,20 @@ app: $(APP_BIN)
 
 debug: $(DEBUG_BIN)
 
-test: $(TEST_BIN)
+run-test: run-unit-test run-e2e-test
+test: $(UNIT_TEST_BIN) $(E2E_TEST_BIN)
 
-run-test: $(TEST_BIN)
-	./$(TEST_BIN)
+run-unit-test: $(UNIT_TEST_BIN)
+	./$(UNIT_TEST_BIN)
+debug-unit-test: $(UNIT_TEST_BIN)
+	gdb $(UNIT_TEST_BIN)
+unit-test: $(UNIT_TEST_BIN)
 
-debug-test: $(TEST_BIN)
-	gdb $(TEST_BIN)
+
+run-e2e-test: $(E2E_TEST_BIN)
+	./$(E2E_TEST_BIN)
+e2e-test: $(E2E_TEST_BIN)
+
 
 clean:
 	rm -rf $(DEBUG_BIN) $(DEBUG_OBJ) $(TEST_BIN) $(TEST_OBJ) $(APP_BIN) $(APP_OBJ)
@@ -72,7 +91,7 @@ clean:
 re: clean
 	$(MAKE) all
 
-.PHONY: all app debug test clean re run-test
+.PHONY: all app debug test clean re run-test run-unit-test run-e2e-test debug-unit-test unit-test e2e-test
 
 # Debug
 $(DEBUG_BIN): $(DEBUG_OBJ)
@@ -80,10 +99,10 @@ $(DEBUG_BIN): $(DEBUG_OBJ)
 $(DEBUG_OBJ): $(DEBUG_OBJ_DIR)/%.o: $(DEBUG_DIR)/%.c
 	$(CC) $(CFLAGS) -c -I$(APP_INCLUDE) $< -o $@
 
-# Tests
-$(TEST_BIN): $(TEST_OBJ)
-	$(CC) $(CFLAGS) -o $@ $(TEST_OBJ) -L$(LIBFT_DIR) -lft
-$(TEST_OBJ): $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.c
+# Unit Tests
+$(UNIT_TEST_BIN): $(UNIT_TEST_OBJ)
+	$(CC) $(CFLAGS) -o $@ $(UNIT_TEST_OBJ) -L$(LIBFT_DIR) -lft
+$(UNIT_TEST_OBJ): $(UNIT_TEST_OBJ_DIR)/%.o: $(UNIT_TEST_DIR)/%.c
 	$(CC) $(CFLAGS) -c -I$(APP_INCLUDE) $< -o $@
 
 # App
